@@ -13,6 +13,7 @@ const defaults = {
 };
 const objectData: Record<string, ObjectDataPair[]> = {};
 let currentLocations: ObjectLocation[] = [];
+let locationsChangedHandler = () => {};
 
 function randomizeLocations() {
   const width = 300 + Math.floor(Math.random() * 200); // 300-500
@@ -89,6 +90,10 @@ const editorImpl = {
   setObjectData(id: string, arr: ObjectDataPair[]): void {
     objectData[id] = arr;
   },
+  onLocationsChanged(handler: () => void): () => void {
+    locationsChangedHandler = handler;
+    return () => (locationsChangedHandler = () => {});
+  },
   generateFromPrompt(
     prompt: string,
   ): Promise<{ component: React.FC; width: number; height: number }> {
@@ -97,6 +102,7 @@ const editorImpl = {
       setTimeout(() => {
         const { width, height, locations } = randomizeLocations();
         currentLocations = locations;
+        locationsChangedHandler();
         resolve({ component: MyStage, width, height });
       }, 1000);
     });
