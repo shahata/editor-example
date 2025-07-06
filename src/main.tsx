@@ -6,8 +6,13 @@ import type {
   ObjectDataPair,
 } from '@shahata5/editor-whiteboard';
 
-const _objectData: Record<string, ObjectDataPair[]> = {};
-let _currentLocations: ObjectLocation[] = [];
+const defaults = {
+  background: `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`,
+  borderRadius: '8',
+  opacity: '0.7',
+};
+const objectData: Record<string, ObjectDataPair[]> = {};
+let currentLocations: ObjectLocation[] = [];
 
 function randomizeLocations() {
   const width = 300 + Math.floor(Math.random() * 200); // 300-500
@@ -20,15 +25,12 @@ function randomizeLocations() {
     const zIndex = Math.floor(Math.random() * 10) + 1;
     const rotation = Math.floor(Math.random() * 360);
     const id = `obj-${Date.now()}-${i}-${Math.floor(Math.random() * 10000)}`;
-    _objectData[id] = [
+    objectData[id] = [
       { key: 'name', value: `Object ${id}` },
       { key: 'type', value: 'rectangle' },
-      {
-        key: 'background',
-        value: `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`,
-      },
-      { key: 'borderRadius', value: '8' },
-      { key: 'opacity', value: '0.7' },
+      { key: 'background', value: defaults.background },
+      { key: 'borderRadius', value: defaults.borderRadius },
+      { key: 'opacity', value: defaults.opacity },
     ];
     return { id, top: t, left: l, width: w, height: h, zIndex, rotation };
   });
@@ -46,20 +48,9 @@ export function MyStage() {
         height: '100%',
       }}
     >
-      {_currentLocations.map((obj: ObjectLocation) => {
-        const data = _objectData[obj.id];
-        const bg = data
-          ? data.find((kv) => kv.key === 'background')?.value ||
-            `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`
-          : `repeating-linear-gradient(135deg, #e0e0e0 0 8px, #bdbdbd 8px 16px)`;
-        const borderRadius = data
-          ? parseFloat(
-              data.find((kv) => kv.key === 'borderRadius')?.value || '8',
-            )
-          : 8;
-        const opacity = data
-          ? parseFloat(data.find((kv) => kv.key === 'opacity')?.value || '0.7')
-          : 0.7;
+      {currentLocations.map((obj: ObjectLocation) => {
+        const get = (key: string) =>
+          objectData[obj.id]?.find((kv) => kv.key === key)?.value || '';
         return (
           <div
             key={obj.id}
@@ -69,9 +60,10 @@ export function MyStage() {
               left: obj.left,
               width: obj.width,
               height: obj.height,
-              background: bg,
-              borderRadius: borderRadius,
-              opacity: opacity,
+              background: get('background') ?? defaults.background,
+              borderRadius:
+                parseFloat(get('borderRadius')) ?? defaults.borderRadius,
+              opacity: parseFloat(get('opacity')) ?? defaults.opacity,
               zIndex: obj.zIndex,
               transform: `rotate(${obj.rotation}deg)`,
             }}
@@ -84,18 +76,18 @@ export function MyStage() {
 
 const editorImpl = {
   getObjectLocations(): ObjectLocation[] {
-    return _currentLocations;
+    return currentLocations;
   },
   setObjectLocation(id: string, newLocation: ObjectLocation): void {
-    _currentLocations = _currentLocations.map((obj: ObjectLocation) =>
+    currentLocations = currentLocations.map((obj: ObjectLocation) =>
       obj.id === id ? newLocation : obj,
     );
   },
   getObjectData(id: string): ObjectDataPair[] {
-    return _objectData[id];
+    return objectData[id];
   },
   setObjectData(id: string, arr: ObjectDataPair[]): void {
-    _objectData[id] = arr;
+    objectData[id] = arr;
   },
   generateFromPrompt(
     prompt: string,
@@ -104,7 +96,7 @@ const editorImpl = {
     return new Promise((resolve) => {
       setTimeout(() => {
         const { width, height, locations } = randomizeLocations();
-        _currentLocations = locations;
+        currentLocations = locations;
         resolve({ component: MyStage, width, height });
       }, 1000);
     });
